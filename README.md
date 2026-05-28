@@ -163,6 +163,30 @@ python scripts/run_search_o1.py \
     --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
 ```
 
+5. **Search-o1 with DeepSeek V4 API (flash / pro)**
+
+Copy `.env.example` to `.env` and set your API keys:
+
+```bash
+cp .env.example .env
+# edit .env: DEEPSEEK_API_KEY, BING_SUBSCRIPTION_KEY, JINA_API_KEY
+```
+
+Run Search-o1 via DeepSeek V4 API (no local GPU required):
+
+```bash
+cd scripts
+python run_search_o1_api.py \
+    --dataset_name gpqa \
+    --split diamond \
+    --model_variant flash \
+    --subset_num 5 \
+    --max_search_limit 5 \
+    --max_turn 10
+```
+
+Use `--model_variant pro` for DeepSeek V4 Pro, or set `DEEPSEEK_MODEL=pro` in `.env`.
+
 **Parameters Explanation:**
 - `--dataset_name`: Name of the dataset to use (e.g., gpqa, aime).
 - `--split`: Data split to run (e.g., train, test, diamond).
