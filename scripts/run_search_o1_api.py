@@ -211,9 +211,7 @@ def run_generation_api(
             reasoning_effort=reasoning_effort,
         )
         text = message_to_text(response.choices[0].message)
-        if extract_between(text, BEGIN_SEARCH_QUERY, END_SEARCH_QUERY) and not text.rstrip().endswith(
-            END_SEARCH_QUERY
-        ):
+        if BEGIN_SEARCH_QUERY in text and not text.rstrip().endswith(END_SEARCH_QUERY):
             text += END_SEARCH_QUERY
         outputs.append(GenerationOutput(text=text))
     return outputs
@@ -496,7 +494,7 @@ def main():
     t = time.localtime()
     batch_output_file = os.path.join(
         output_dir,
-        f"{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.info_extract.json",
+        f"{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}-{t.tm_min}.info_extract.json",
     )
     with open(batch_output_file, "w", encoding="utf-8") as f:
         json.dump(batch_output_records, f, ensure_ascii=False, indent=2)

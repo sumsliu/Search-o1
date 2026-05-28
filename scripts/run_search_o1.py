@@ -689,7 +689,7 @@ def main():
     # ---------------------- Save Batch Output Records to JSON File ----------------------
     # Define output JSON file path
     t = time.localtime()
-    batch_output_file = os.path.join(output_dir, f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.info_extract.json')
+    batch_output_file = os.path.join(output_dir, f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}-{t.tm_min}.info_extract.json')
 
     # Save batch_output_records to JSON file
     with open(batch_output_file, 'w', encoding='utf-8') as f:

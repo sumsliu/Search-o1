@@ -171,11 +171,11 @@ cp .env.example .env
 # edit .env: DEEPSEEK_API_KEY, TAVILY_API_KEY, JINA_API_KEY (optional)
 ```
 
-Run Search-o1 via DeepSeek V4 API (no local GPU required):
+Run Search-o1 via DeepSeek V4 API (no local GPU required). **Run from the project root** (`Search-o1/`), not from `scripts/`:
 
 ```bash
-cd scripts
-python run_search_o1_api.py \
+cd Search-o1
+python scripts/run_search_o1_api.py \
     --dataset_name gpqa \
     --split diamond \
     --model_variant flash \
@@ -218,6 +218,30 @@ python run_search_o1_api.py --dataset_name aime --split test --model_variant pro
 ```
 
 **Cost tip:** One question may trigger multiple main-reasoning turns + Tavily searches + document-extraction calls. Use Flash to validate the workflow, then run Pro only on the final evaluation subset.
+
+### Reproduction Setup (DeepSeek API)
+
+```bash
+# 1. Create conda env
+conda env create -f environment.yml
+conda activate search_o1
+pip install scripts/lcb_runner/pyext/pyext-0.7
+
+# 2. Configure .env (copy from .env.example)
+#    DEEPSEEK_API_KEY, TAVILY_API_KEY required
+
+# 3. Download data (NQ works without HF login; GPQA requires huggingface-cli login)
+python scripts/download_data.py --dataset nq --limit 50
+
+# 4. Run from project root (not scripts/)
+python scripts/run_search_o1_api.py \
+    --dataset_name nq \
+    --split test \
+    --model_variant flash \
+    --subset_num 3 \
+    --max_search_limit 3 \
+    --max_turn 8
+```
 
 **Parameters Explanation:**
 - `--dataset_name`: Name of the dataset to use (e.g., gpqa, aime).
