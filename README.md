@@ -186,6 +186,39 @@ python run_search_o1_api.py \
 
 Use `--model_variant pro` for DeepSeek V4 Pro, or set `DEEPSEEK_MODEL=pro` in `.env`.
 
+#### DeepSeek V4 Flash vs Pro — Usage Guide
+
+Search-o1 makes **two types of LLM calls** per question:
+
+| Stage | Role | Recommended model |
+|-------|------|-------------------|
+| Main reasoning | Long CoT, search triggers, final `\boxed{}` answer | **Flash** (default) or **Pro** (hard tasks) |
+| Reason-in-Documents | Extract `**Final Information**` from web pages | Always **Flash** (`thinking=False`, set in code) |
+
+**When to use Flash** (set `DEEPSEEK_MODEL=flash`, `DEEPSEEK_REASONING_EFFORT=high`):
+
+- Debugging the pipeline, `--subset_num 5` smoke tests
+- Single-hop QA (NQ, TriviaQA)
+- Cost-sensitive or high-volume runs
+
+**When to use Pro** (set `DEEPSEEK_MODEL=pro`, `DEEPSEEK_REASONING_EFFORT=max`):
+
+- GPQA, AIME, AMC, LiveCodeBench
+- Multi-hop QA (HotpotQA, MuSiQue, 2Wiki, Bamboogle)
+- When Flash accuracy is insufficient after tuning search limits
+
+**Quick switch without editing `.env`:**
+
+```bash
+# Daily dev / low cost
+python run_search_o1_api.py --dataset_name gpqa --split diamond --model_variant flash --subset_num 5
+
+# Hard benchmarks
+python run_search_o1_api.py --dataset_name aime --split test --model_variant pro --reasoning_effort max --subset_num 5
+```
+
+**Cost tip:** One question may trigger multiple main-reasoning turns + Tavily searches + document-extraction calls. Use Flash to validate the workflow, then run Pro only on the final evaluation subset.
+
 **Parameters Explanation:**
 - `--dataset_name`: Name of the dataset to use (e.g., gpqa, aime).
 - `--split`: Data split to run (e.g., train, test, diamond).
