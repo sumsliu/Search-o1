@@ -9,18 +9,17 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 from bing_search import (
-    bing_web_search,
     extract_relevant_info,
     extract_snippet_with_context,
     fetch_page_content,
+    web_search,
 )
 from config import (
-    BING_ENDPOINT,
-    BING_SUBSCRIPTION_KEY,
     DEEPSEEK_MODEL,
     JINA_API_KEY,
     get_deepseek_model,
     require_deepseek_api_key,
+    require_tavily_api_key,
 )
 from deepseek_client import deepseek_chat, message_to_text
 from evaluate import extract_answer, run_evaluation
@@ -97,18 +96,6 @@ def parse_args():
         help="Thinking effort for main reasoning. Defaults to env.",
     )
     parser.add_argument("--max_tokens", type=int, default=None)
-    parser.add_argument(
-        "--bing_subscription_key",
-        type=str,
-        default=None,
-        help="Bing key. Falls back to BING_SUBSCRIPTION_KEY in .env.",
-    )
-    parser.add_argument(
-        "--bing_endpoint",
-        type=str,
-        default=None,
-        help="Bing endpoint. Falls back to BING_ENDPOINT in .env.",
-    )
     parser.add_argument(
         "--jina_api_key",
         type=str,
@@ -280,6 +267,7 @@ def resolve_max_tokens(dataset_name: str, max_tokens: Optional[int]) -> int:
 def main():
     args = parse_args()
     require_deepseek_api_key()
+    require_tavily_api_key()
 
     dataset_name = args.dataset_name
     split = args.split
@@ -295,17 +283,9 @@ def main():
     reasoning_effort = args.reasoning_effort
     max_tokens = resolve_max_tokens(dataset_name, args.max_tokens)
 
-    bing_subscription_key = args.bing_subscription_key or BING_SUBSCRIPTION_KEY
-    bing_endpoint = args.bing_endpoint or BING_ENDPOINT
     jina_api_key = args.jina_api_key or JINA_API_KEY
     if args.jina_api_key == "None":
         jina_api_key = None
-
-    if not bing_subscription_key:
-        raise ValueError(
-            "Bing subscription key required. Set BING_SUBSCRIPTION_KEY in .env "
-            "or pass --bing_subscription_key."
-        )
 
     if dataset_name in ["nq", "triviaqa", "hotpotqa", "musique", "bamboogle", "2wiki"]:
         max_search_limit = 5
@@ -418,13 +398,7 @@ def main():
                         print(f'Using cached search results for query: "{search_query}"')
                     else:
                         try:
-                            results = bing_web_search(
-                                search_query,
-                                bing_subscription_key,
-                                bing_endpoint,
-                                market="en-US",
-                                language="en",
-                            )
+                            results = web_search(search_query, max_results=top_k)
                             search_cache[search_query] = results
                             print(f'Executed and cached search for query: "{search_query}"')
                         except Exception as e:

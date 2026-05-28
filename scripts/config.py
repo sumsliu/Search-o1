@@ -22,11 +22,9 @@ DEEPSEEK_THINKING_ENABLED = os.getenv("DEEPSEEK_THINKING_ENABLED", "true").lower
 )
 DEEPSEEK_REASONING_EFFORT = os.getenv("DEEPSEEK_REASONING_EFFORT", "high").strip().lower()
 
-BING_SUBSCRIPTION_KEY = os.getenv("BING_SUBSCRIPTION_KEY")
-BING_ENDPOINT = os.getenv(
-    "BING_ENDPOINT", "https://api.bing.microsoft.com/v7.0/search"
-).rstrip("/")
 JINA_API_KEY = os.getenv("JINA_API_KEY")
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
+TAVILY_SEARCH_DEPTH = os.getenv("TAVILY_SEARCH_DEPTH", "basic").strip().lower()
 
 
 def get_deepseek_model(variant: Optional[str] = None) -> str:
@@ -50,3 +48,11 @@ def require_deepseek_api_key() -> str:
             "DEEPSEEK_API_KEY is not set. Copy .env.example to .env and add your key."
         )
     return DEEPSEEK_API_KEY
+
+
+def require_tavily_api_key() -> str:
+    if not TAVILY_API_KEY:
+        raise ValueError(
+            "TAVILY_API_KEY is not set. Copy .env.example to .env and add your key."
+        )
+    return TAVILY_API_KEY

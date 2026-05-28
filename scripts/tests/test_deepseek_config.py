@@ -65,5 +65,27 @@ class TestSearchO1ApiHelpers(unittest.TestCase):
         self.assertIn(BEGIN_SEARCH_QUERY, truncated)
 
 
+class TestTavilySearch(unittest.TestCase):
+    def test_extract_relevant_info_tavily(self):
+        from bing_search import extract_relevant_info
+
+        search_results = {
+            "query": "test",
+            "results": [
+                {
+                    "url": "https://example.com",
+                    "title": "Example",
+                    "content": "Example snippet text",
+                    "score": 0.9,
+                }
+            ],
+        }
+        info = extract_relevant_info(search_results)
+        self.assertEqual(len(info), 1)
+        self.assertEqual(info[0]["url"], "https://example.com")
+        self.assertEqual(info[0]["snippet"], "Example snippet text")
+        self.assertEqual(info[0]["context"], "Example snippet text")
+
+
 if __name__ == "__main__":
     unittest.main()

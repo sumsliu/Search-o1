@@ -7,10 +7,10 @@ from typing import List, Dict, Optional, Tuple
 import argparse
 
 from bing_search import (
-    bing_web_search,
     extract_relevant_info,
     fetch_page_content,
     extract_snippet_with_context,
+    web_search,
 )
 from evaluate import run_evaluation, extract_answer
 from transformers import AutoTokenizer
@@ -128,19 +128,19 @@ def parse_args():
         help="Maximum number of tokens to generate. If not set, defaults based on the model and dataset."
     )
 
-    # Bing API Configuration
+    # Deprecated Bing args; search uses Tavily (TAVILY_API_KEY in .env)
     parser.add_argument(
         '--bing_subscription_key',
         type=str,
-        required=True,
-        help="Bing Search API subscription key."
+        default=None,
+        help="Deprecated. Search uses Tavily (TAVILY_API_KEY in .env).",
     )
 
     parser.add_argument(
         '--bing_endpoint',
         type=str,
-        default="https://api.bing.microsoft.com/v7.0/search",
-        help="Bing Search API endpoint."
+        default=None,
+        help="Deprecated. Search uses Tavily.",
     )
 
     return parser.parse_args()
@@ -249,7 +249,7 @@ def main():
                 search_question = question[:500]
             else:
                 search_question = question
-            results = bing_web_search(search_question, bing_subscription_key, bing_endpoint, market='en-US', language='en')
+            results = web_search(search_question, max_results=top_k)
             search_cache[question] = results
             # print(f"Executed and cached search for question: {question}")
 

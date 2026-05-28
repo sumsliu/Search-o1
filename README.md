@@ -129,9 +129,10 @@ python scripts/run_naive_rag.py \
     --split diamond \
     --use_jina True \
     --model_path "YOUR_MODEL_PATH" \
-    --jina_api_key "YOUR_JINA_API_KEY" \
-    --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
+    --jina_api_key "YOUR_JINA_API_KEY"
 ```
+
+Set `TAVILY_API_KEY` in `.env` before running (see `.env.example`).
 
 3. **RAG with Agentic Search**
 ```bash
@@ -144,8 +145,7 @@ python scripts/run_rag_agent.py \
     --top_k 10 \
     --use_jina True \
     --model_path "YOUR_MODEL_PATH" \
-    --jina_api_key "YOUR_JINA_API_KEY" \
-    --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
+    --jina_api_key "YOUR_JINA_API_KEY"
 ```
 
 4. **Search-o1 (Ours)**
@@ -159,8 +159,7 @@ python scripts/run_search_o1.py \
     --max_doc_len 3000 \
     --use_jina True \
     --model_path "YOUR_MODEL_PATH" \
-    --jina_api_key "YOUR_JINA_API_KEY" \
-    --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
+    --jina_api_key "YOUR_JINA_API_KEY"
 ```
 
 5. **Search-o1 with DeepSeek V4 API (flash / pro)**
@@ -169,7 +168,7 @@ Copy `.env.example` to `.env` and set your API keys:
 
 ```bash
 cp .env.example .env
-# edit .env: DEEPSEEK_API_KEY, BING_SUBSCRIPTION_KEY, JINA_API_KEY
+# edit .env: DEEPSEEK_API_KEY, TAVILY_API_KEY, JINA_API_KEY (optional)
 ```
 
 Run Search-o1 via DeepSeek V4 API (no local GPU required):
@@ -191,7 +190,7 @@ Use `--model_variant pro` for DeepSeek V4 Pro, or set `DEEPSEEK_MODEL=pro` in `.
 - `--dataset_name`: Name of the dataset to use (e.g., gpqa, aime).
 - `--split`: Data split to run (e.g., train, test, diamond).
 - `--model_path`: Path to the pre-trained LRM model.
-- `--bing_subscription_key`: Your Bing Search API subscription key.
+- `TAVILY_API_KEY`: Tavily Search API key (set in `.env` for all retrieval scripts).
 - `--max_search_limit`: Maximum number of search queries per reasoning session.
 - `--max_url_fetch`: Maximum number of URLs to fetch per search.
 - `--max_turn`: Maximum number of reasoning turns.
@@ -200,7 +199,7 @@ Use `--model_variant pro` for DeepSeek V4 Pro, or set `DEEPSEEK_MODEL=pro` in `.
 - `--use_jina`: Whether to use Jina for document processing.
 - `--jina_api_key`: Your Jina API subscription key for URL content fetching.
 
-Ensure you replace `"YOUR_MODEL_PATH"` with your actual model path, replace `"YOUR_BING_SUBSCRIPTION_KEY"` and `"YOUR_JINA_API_KEY"` with your Bing Search and Jina API key.
+Ensure you replace `"YOUR_MODEL_PATH"` with your actual model path and configure `TAVILY_API_KEY` / `JINA_API_KEY` in `.env`.
 
 ### Evaluation
 
