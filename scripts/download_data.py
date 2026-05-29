@@ -16,7 +16,7 @@ def preprocess_gpqa(split: str = "diamond") -> Path:
 
     config_map = {
         "diamond": "gpqa_diamond",
-        "main": "gpqa_main",
+        "main": "gpqa_experts",  # HF config name; local split file stays main.json
         "extended": "gpqa_extended",
     }
     if split not in config_map:

@@ -262,6 +262,74 @@ def resolve_max_tokens(dataset_name: str, max_tokens: Optional[int]) -> int:
     return 20480
 
 
+def extract_search_results(text: str) -> List[str]:
+    pattern = re.escape(BEGIN_SEARCH_RESULT) + r"(.*?)" + re.escape(END_SEARCH_RESULT)
+    return [m.strip() for m in re.findall(pattern, text, flags=re.DOTALL)]
+
+
+def build_search_audit(active_sequences: List[Dict]) -> Dict:
+    """Audit whether retrieved info was injected into the reasoning chain."""
+    per_item = []
+    injected_ok = 0
+    searched = 0
+    cites_after_search = 0
+
+    for seq in active_sequences:
+        output = seq["output"]
+        queries = list(seq["executed_search_queries"])
+        result_blocks = extract_search_results(output)
+        query_count = len(queries)
+        if query_count:
+            searched += 1
+
+        # Each executed search should produce one <|begin_search_result|> block in output/prompt.
+        injection_ok = query_count == 0 or len(result_blocks) >= query_count
+        if injection_ok and query_count:
+            injected_ok += 1
+
+        post_search_text = ""
+        if result_blocks:
+            last_pos = output.rfind(END_SEARCH_RESULT)
+            if last_pos != -1:
+                post_search_text = output[last_pos + len(END_SEARCH_RESULT) :]
+
+        cites_search = False
+        if result_blocks and post_search_text:
+            first_block = result_blocks[0][:120].lower()
+            block_tokens = [t for t in re.split(r"\W+", first_block) if len(t) > 5][:8]
+            cites_search = any(token in post_search_text.lower() for token in block_tokens)
+
+        if cites_search:
+            cites_after_search += 1
+
+        per_item.append(
+            {
+                "id": seq["item"].get("id"),
+                "search_count": seq["search_count"],
+                "search_queries": queries,
+                "num_result_blocks": len(result_blocks),
+                "injection_ok": injection_ok,
+                "has_search_result_in_output": bool(result_blocks),
+                "cites_search_in_later_reasoning": cites_search,
+                "result_previews": [block[:300] for block in result_blocks],
+            }
+        )
+
+    total = len(active_sequences)
+    return {
+        "summary": {
+            "total": total,
+            "used_search": searched,
+            "search_rate": searched / total if total else 0.0,
+            "injection_ok": injected_ok,
+            "injection_rate": injected_ok / searched if searched else 1.0,
+            "cites_search_after_injection": cites_after_search,
+            "cite_rate": cites_after_search / searched if searched else 0.0,
+        },
+        "items": per_item,
+    }
+
+
 def main():
     args = parse_args()
     require_deepseek_api_key()
@@ -284,6 +352,9 @@ def main():
     jina_api_key = args.jina_api_key or JINA_API_KEY
     if args.jina_api_key == "None":
         jina_api_key = None
+    use_jina = args.use_jina and bool(jina_api_key)
+    if args.use_jina and not jina_api_key:
+        print("JINA_API_KEY not set; using Tavily snippets only (no full-page fetch).")
 
     if dataset_name in ["nq", "triviaqa", "hotpotqa", "musique", "bamboogle", "2wiki"]:
         max_search_limit = 5
@@ -442,7 +513,7 @@ def main():
             try:
                 fetched_contents = fetch_page_content(
                     list(all_urls_to_fetch),
-                    use_jina=args.use_jina,
+                    use_jina=use_jina,
                     jina_api_key=jina_api_key,
                 )
             except Exception as e:
@@ -499,6 +570,22 @@ def main():
     with open(batch_output_file, "w", encoding="utf-8") as f:
         json.dump(batch_output_records, f, ensure_ascii=False, indent=2)
     print(f"Batch outputs saved to {batch_output_file}")
+
+    t = time.localtime()
+    search_audit = build_search_audit(active_sequences)
+    audit_file = os.path.join(
+        output_dir,
+        f"{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}-{t.tm_min}.search_audit.json",
+    )
+    with open(audit_file, "w", encoding="utf-8") as f:
+        json.dump(search_audit, f, ensure_ascii=False, indent=2)
+    summary = search_audit["summary"]
+    print(
+        f"Search audit: {summary['used_search']}/{summary['total']} used search, "
+        f"injection_ok={summary['injection_ok']}/{summary['used_search']}, "
+        f"cite_after_search={summary['cites_search_after_injection']}/{summary['used_search']}"
+    )
+    print(f"Search audit saved to {audit_file}")
 
     output_list = [seq["output"] for seq in active_sequences]
     run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split)

@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional, Union
+import time
 
-from openai import OpenAI
+from openai import APIConnectionError, APITimeoutError, OpenAI, RateLimitError
 
 from config import (
     DEEPSEEK_BASE_URL,
@@ -54,7 +55,17 @@ def deepseek_chat(
         request_kwargs["reasoning_effort"] = effort
         request_kwargs["extra_body"] = {"thinking": {"type": "enabled"}}
 
-    return client.chat.completions.create(**request_kwargs)
+    last_err = None
+    for attempt in range(3):
+        try:
+            return client.chat.completions.create(**request_kwargs)
+        except (APIConnectionError, APITimeoutError, RateLimitError) as err:
+            last_err = err
+            if attempt < 2:
+                time.sleep(2 ** attempt)
+                continue
+            raise
+    raise last_err  # pragma: no cover
 
 
 def message_to_text(message, include_reasoning: bool = True) -> str:
