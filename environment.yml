@@ -1,0 +1,22 @@
+name: search_o1
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - python-dotenv==1.0.1
+      - openai>=1.0.0
+      - requests>=2.31.0
+      - beautifulsoup4>=4.12.0
+      - lxml>=5.0.0
+      - pdfplumber>=0.11.0
+      - tqdm==4.67.0
+      - nltk==3.9.1
+      - datasets>=2.19.0
+      - huggingface_hub>=0.23.0
+      - pandas>=2.0.0
+# After env create, from project root run:
+#   pip install scripts/lcb_runner/pyext/pyext-0.7
+#   python scripts/download_data.py --dataset nq --limit 50

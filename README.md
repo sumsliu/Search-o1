@@ -129,9 +129,10 @@ python scripts/run_naive_rag.py \
     --split diamond \
     --use_jina True \
     --model_path "YOUR_MODEL_PATH" \
-    --jina_api_key "YOUR_JINA_API_KEY" \
-    --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
+    --jina_api_key "YOUR_JINA_API_KEY"
 ```
+
+Set `TAVILY_API_KEY` in `.env` before running (see `.env.example`).
 
 3. **RAG with Agentic Search**
 ```bash
@@ -144,8 +145,7 @@ python scripts/run_rag_agent.py \
     --top_k 10 \
     --use_jina True \
     --model_path "YOUR_MODEL_PATH" \
-    --jina_api_key "YOUR_JINA_API_KEY" \
-    --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
+    --jina_api_key "YOUR_JINA_API_KEY"
 ```
 
 4. **Search-o1 (Ours)**
@@ -159,15 +159,95 @@ python scripts/run_search_o1.py \
     --max_doc_len 3000 \
     --use_jina True \
     --model_path "YOUR_MODEL_PATH" \
-    --jina_api_key "YOUR_JINA_API_KEY" \
-    --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
+    --jina_api_key "YOUR_JINA_API_KEY"
+```
+
+5. **Search-o1 with DeepSeek V4 API (flash / pro)**
+
+Copy `.env.example` to `.env` and set your API keys:
+
+```bash
+cp .env.example .env
+# edit .env: DEEPSEEK_API_KEY, TAVILY_API_KEY, JINA_API_KEY (optional)
+```
+
+Run Search-o1 via DeepSeek V4 API (no local GPU required). **Run from the project root** (`Search-o1/`), not from `scripts/`:
+
+```bash
+cd Search-o1
+python scripts/run_search_o1_api.py \
+    --dataset_name gpqa \
+    --split diamond \
+    --model_variant flash \
+    --subset_num 5 \
+    --max_search_limit 5 \
+    --max_turn 10
+```
+
+Use `--model_variant pro` for DeepSeek V4 Pro, or set `DEEPSEEK_MODEL=pro` in `.env`.
+
+#### DeepSeek V4 Flash vs Pro — Usage Guide
+
+Search-o1 makes **two types of LLM calls** per question:
+
+| Stage | Role | Recommended model |
+|-------|------|-------------------|
+| Main reasoning | Long CoT, search triggers, final `\boxed{}` answer | **Flash** (default) or **Pro** (hard tasks) |
+| Reason-in-Documents | Extract `**Final Information**` from web pages | Always **Flash** (`thinking=False`, set in code) |
+
+**When to use Flash** (set `DEEPSEEK_MODEL=flash`, `DEEPSEEK_REASONING_EFFORT=high`):
+
+- Debugging the pipeline, `--subset_num 5` smoke tests
+- Single-hop QA (NQ, TriviaQA)
+- Cost-sensitive or high-volume runs
+
+**When to use Pro** (set `DEEPSEEK_MODEL=pro`, `DEEPSEEK_REASONING_EFFORT=max`):
+
+- GPQA, AIME, AMC, LiveCodeBench
+- Multi-hop QA (HotpotQA, MuSiQue, 2Wiki, Bamboogle)
+- When Flash accuracy is insufficient after tuning search limits
+
+**Quick switch without editing `.env`:**
+
+```bash
+# Daily dev / low cost
+python run_search_o1_api.py --dataset_name gpqa --split diamond --model_variant flash --subset_num 5
+
+# Hard benchmarks
+python run_search_o1_api.py --dataset_name aime --split test --model_variant pro --reasoning_effort max --subset_num 5
+```
+
+**Cost tip:** One question may trigger multiple main-reasoning turns + Tavily searches + document-extraction calls. Use Flash to validate the workflow, then run Pro only on the final evaluation subset.
+
+### Reproduction Setup (DeepSeek API)
+
+```bash
+# 1. Create conda env
+conda env create -f environment.yml
+conda activate search_o1
+pip install scripts/lcb_runner/pyext/pyext-0.7
+
+# 2. Configure .env (copy from .env.example)
+#    DEEPSEEK_API_KEY, TAVILY_API_KEY required
+
+# 3. Download data (NQ works without HF login; GPQA requires huggingface-cli login)
+python scripts/download_data.py --dataset nq --limit 50
+
+# 4. Run from project root (not scripts/)
+python scripts/run_search_o1_api.py \
+    --dataset_name nq \
+    --split test \
+    --model_variant flash \
+    --subset_num 3 \
+    --max_search_limit 3 \
+    --max_turn 8
 ```
 
 **Parameters Explanation:**
 - `--dataset_name`: Name of the dataset to use (e.g., gpqa, aime).
 - `--split`: Data split to run (e.g., train, test, diamond).
 - `--model_path`: Path to the pre-trained LRM model.
-- `--bing_subscription_key`: Your Bing Search API subscription key.
+- `TAVILY_API_KEY`: Tavily Search API key (set in `.env` for all retrieval scripts).
 - `--max_search_limit`: Maximum number of search queries per reasoning session.
 - `--max_url_fetch`: Maximum number of URLs to fetch per search.
 - `--max_turn`: Maximum number of reasoning turns.
@@ -176,7 +256,7 @@ python scripts/run_search_o1.py \
 - `--use_jina`: Whether to use Jina for document processing.
 - `--jina_api_key`: Your Jina API subscription key for URL content fetching.
 
-Ensure you replace `"YOUR_MODEL_PATH"` with your actual model path, replace `"YOUR_BING_SUBSCRIPTION_KEY"` and `"YOUR_JINA_API_KEY"` with your Bing Search and Jina API key.
+Ensure you replace `"YOUR_MODEL_PATH"` with your actual model path and configure `TAVILY_API_KEY` / `JINA_API_KEY` in `.env`.
 
 ### Evaluation
 

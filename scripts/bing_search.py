@@ -181,6 +181,64 @@ def fetch_page_content(urls, max_workers=32, use_jina=False, jina_api_key=None, 
     return results
 
 
+def tavily_web_search(
+    query,
+    api_key,
+    max_results=10,
+    search_depth="basic",
+    timeout=20,
+):
+    """
+    Perform a search using the Tavily Search API.
+
+    Returns:
+        dict: JSON response with a ``results`` list.
+    """
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+    }
+    payload = {
+        "query": query,
+        "max_results": max_results,
+        "search_depth": search_depth,
+        "include_answer": False,
+        "include_raw_content": False,
+    }
+
+    try:
+        response = requests.post(
+            "https://api.tavily.com/search",
+            headers=headers,
+            json=payload,
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        return response.json()
+    except Timeout:
+        print(f"Tavily search request timed out ({timeout} seconds) for query: {query}")
+        return {}
+    except requests.exceptions.RequestException as e:
+        print(f"Error occurred during Tavily search request: {e}")
+        return {}
+
+
+def web_search(query, max_results=10, search_depth=None, timeout=20):
+    """Search the web using Tavily (reads TAVILY_API_KEY from env)."""
+    from config import TAVILY_SEARCH_DEPTH, require_tavily_api_key
+
+    api_key = require_tavily_api_key()
+    if search_depth is None:
+        search_depth = TAVILY_SEARCH_DEPTH
+    return tavily_web_search(
+        query,
+        api_key,
+        max_results=max_results,
+        search_depth=search_depth,
+        timeout=timeout,
+    )
+
+
 def bing_web_search(query, subscription_key, endpoint, market='en-US', language='en', timeout=20):
     """
     Perform a search using the Bing Web Search API with a set timeout.
@@ -255,50 +313,58 @@ def extract_pdf_text(url):
 
 def extract_relevant_info(search_results):
     """
-    Extract relevant information from Bing search results.
+    Extract relevant information from Tavily or Bing search results.
 
     Args:
-        search_results (dict): JSON response from the Bing Web Search API.
+        search_results (dict): JSON response from Tavily or Bing search API.
 
     Returns:
         list: A list of dictionaries containing the extracted information.
     """
-    useful_info = []
-    
-    if 'webPages' in search_results and 'value' in search_results['webPages']:
-        for id, result in enumerate(search_results['webPages']['value']):
+    if not search_results:
+        return []
+
+    if "results" in search_results:
+        useful_info = []
+        for idx, result in enumerate(search_results["results"]):
             info = {
-                'id': id + 1,  # Increment id for easier subsequent operations
-                'title': result.get('name', ''),
-                'url': result.get('url', ''),
-                'site_name': result.get('siteName', ''),
-                'date': result.get('datePublished', '').split('T')[0],
-                'snippet': result.get('snippet', ''),  # Remove HTML tags
-                # Add context content to the information
-                'context': ''  # Reserved field to be filled later
+                "id": idx + 1,
+                "title": result.get("title", ""),
+                "url": result.get("url", ""),
+                "site_name": "",
+                "date": "",
+                "snippet": result.get("content", ""),
+                "context": result.get("content", ""),
             }
             useful_info.append(info)
-    
+        return useful_info
+
+    useful_info = []
+    if "webPages" in search_results and "value" in search_results["webPages"]:
+        for id, result in enumerate(search_results["webPages"]["value"]):
+            info = {
+                "id": id + 1,
+                "title": result.get("name", ""),
+                "url": result.get("url", ""),
+                "site_name": result.get("siteName", ""),
+                "date": result.get("datePublished", "").split("T")[0],
+                "snippet": result.get("snippet", ""),
+                "context": "",
+            }
+            useful_info.append(info)
+
     return useful_info
 
 
 # ------------------------------------------------------------
 
 if __name__ == "__main__":
-    # Example usage
-    # Define the query to search
+    from config import require_tavily_api_key
+
     query = "Structure of dimethyl fumarate"
-    
-    # Subscription key and endpoint for Bing Search API
-    BING_SUBSCRIPTION_KEY = "YOUR_BING_SUBSCRIPTION_KEY"
-    if not BING_SUBSCRIPTION_KEY:
-        raise ValueError("Please set the BING_SEARCH_V7_SUBSCRIPTION_KEY environment variable.")
-    
-    bing_endpoint = "https://api.bing.microsoft.com/v7.0/search"
-    
-    # Perform the search
-    print("Performing Bing Web Search...")
-    search_results = bing_web_search(query, BING_SUBSCRIPTION_KEY, bing_endpoint)
+    require_tavily_api_key()
+    print("Performing Tavily Web Search...")
+    search_results = web_search(query, max_results=5)
     
     print("Extracting relevant information from search results...")
     extracted_info = extract_relevant_info(search_results)

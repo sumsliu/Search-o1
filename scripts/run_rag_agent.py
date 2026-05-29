@@ -12,7 +12,7 @@ import argparse
 
 from transformers import AutoTokenizer
 from vllm import LLM, SamplingParams
-from bing_search import bing_web_search, extract_relevant_info, fetch_page_content
+from bing_search import extract_relevant_info, fetch_page_content, web_search
 from evaluate import run_evaluation
 from prompts import (
     get_singleqa_rag_agent_instruction, 
@@ -151,18 +151,19 @@ def parse_args():
     )
 
     # Bing API Configuration
+    # Deprecated Bing args; search uses Tavily (TAVILY_API_KEY in .env)
     parser.add_argument(
         '--bing_subscription_key',
         type=str,
-        required=True,
-        help="Bing Search API subscription key."
+        default=None,
+        help="Deprecated. Search uses Tavily (TAVILY_API_KEY in .env).",
     )
 
     parser.add_argument(
         '--bing_endpoint',
         type=str,
-        default="https://api.bing.microsoft.com/v7.0/search",
-        help="Bing Search API endpoint."
+        default=None,
+        help="Deprecated. Search uses Tavily.",
     )
 
     return parser.parse_args()
@@ -390,7 +391,7 @@ def main():
                     else:
                         try:
                             # Execute search and cache results
-                            results = bing_web_search(query, bing_subscription_key, bing_endpoint, market='en-US', language='en')
+                            results = web_search(query, max_results=top_k)
                             search_cache[query] = results
                             print(f"Executed and cached search for query: {query}")
                         except Exception as e:

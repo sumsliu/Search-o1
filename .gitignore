@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.py[cod]
+.cache/
+cache/
+outputs/
+data/QA_Datasets/
+data/GPQA/
+condaenv.*.requirements.txt
+
+.venv/
+venv/

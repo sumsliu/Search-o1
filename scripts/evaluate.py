@@ -5,7 +5,6 @@ from collections import Counter
 import string
 import os, time
 from collections import defaultdict
-from lcb_runner.evaluation import codegen_metrics
 from utils.math_equivalence import is_equiv
 
 
@@ -120,6 +119,8 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
 
 def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, apply_backoff=False):
     if dataset_name == 'livecode':
+        from lcb_runner.evaluation import codegen_metrics
+
         # Prepare samples and generations for codegen_metrics
         samples_list = []
         generations_list = []
@@ -275,8 +276,8 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     domain_metrics[domain]['num_valid_answer'] += 1
 
         t = time.localtime()
-        result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.json'
-        metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.metrics.json'
+        result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}-{t.tm_min}.json'
+        metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}-{t.tm_min}.metrics.json'
 
         # Compute overall metrics
         overall_results = {
@@ -306,8 +307,8 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             final_metrics['per_domain'] = domain_avg_metrics
 
     t = time.localtime()
-    result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.json'
-    metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.metrics.json'
+    result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}-{t.tm_min}.json'
+    metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}-{t.tm_min}.metrics.json'
     if apply_backoff:
         result_json_name = output_dir
         metrics_json_name = output_dir.replace('.json', '.metrics.backoff.json')
